@@ -724,7 +724,7 @@
 "oh_radical_c":-1
 },
 "lower_bound":0,
-"upper_bound":1000,
+"upper_bound":10,
 "gene_reaction_rule":""
 },
 {
@@ -813,7 +813,7 @@
 "oh_radical_c":-1
 },
 "lower_bound":0,
-"upper_bound":1000,
+"upper_bound":5,
 "gene_reaction_rule":""
 },
 {

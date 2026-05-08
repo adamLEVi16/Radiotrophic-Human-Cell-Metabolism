@@ -1,7 +1,7 @@
-config,peak_superoxide_uM,peak_h2o2_uM,peak_oh_nM,dna_damage_120s,gsh_depletion_pct
-All defenses,0.001,0.1,0.001,1e-06,0.0
-No Dsup,0.001,0.1,0.001,1e-06,0.0
-No Mn-AOX,0.001,0.1,0.001,1e-06,0.0
-No Nrf2,0.001,0.1,0.001,1e-06,0.0
-No Dsup+Mn-AOX,0.001,0.1,0.001,1e-06,0.0
-Native only,0.001,0.1,0.001,1e-06,0.0
+config,peak_superoxide_uM,peak_h2o2_uM,peak_oh_nM,fold_o2s_vs_full_defense,fold_oh_vs_full_defense,fold_dna_damage_vs_full_defense,time_to_ss_o2s_s,dna_damage_120s,gsh_depletion_pct
+All defenses,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
+No Dsup,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
+No Mn-AOX,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
+No Nrf2,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
+No Dsup+Mn-AOX,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
+Native only,0.001,0.1,0.001,1.0,1.0,1.0,0.0,1e-06,0.0
