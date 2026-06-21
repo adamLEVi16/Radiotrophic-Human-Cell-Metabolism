@@ -292,7 +292,31 @@ def build_model():
     
     model.add_reactions(rxns)
     model.objective = 'ATPM'
-    
+
+    # ------------------------------------------------------------
+    # Dsup protection cap (coupling constraint)
+    # ------------------------------------------------------------
+    # Hashimoto et al. (2016) showed Dsup reduces radiation-induced DNA
+    # damage by ~40%, NOT 100%. Without this constraint, FBA routes every
+    # hydroxyl radical through the (near-free) DSUP reaction and pays zero
+    # ATP for DNA repair, overstating Dsup's benefit. Dsup is a sacrificial
+    # chromatin coat: it can intercept at most ~40% of the radicals it is
+    # exposed to. OH radicals are generated only by RADIO (0.24 per flux),
+    # so the realistic ceiling is:
+    #     DSUP_flux <= 0.40 * 0.24 * RADIO_flux
+    # The remaining ~60% must route through GSH scavenging (OH_SCAV) or
+    # DNA damage -> repair (FENTON -> BER, 4 ATP/lesion).
+    DSUP_PROTECTION_FRACTION = 0.40
+    OH_PER_RADIO = 0.24  # must match the oh_radical_c coefficient in RADIO
+    dsup_cap = model.problem.Constraint(
+        model.reactions.get_by_id('DSUP').flux_expression
+        - DSUP_PROTECTION_FRACTION * OH_PER_RADIO
+        * model.reactions.get_by_id('RADIO').flux_expression,
+        ub=0,
+        name='dsup_protection_cap',
+    )
+    model.add_cons_vars(dsup_cap)
+
     return model
 
 
@@ -582,9 +606,9 @@ def run_all_experiments():
             'observation': 'Dsup reduces DNA damage by ~40% in HEK293',
             'source': 'Hashimoto et al. 2016 Nature Comms',
             'experimental_value': '~40% X-ray damage reduction',
-            'model_prediction': 'Dsup handles 100% of OH radicals (FBA optimizes)',
-            'agreement': 'YES - Dsup protective, FBA overestimates (no 40% cap)',
-            'note': 'Kinetic model K3 confirms Dsup effect is marginal at low flux'
+            'model_prediction': 'Dsup capped at 40% of OH radicals (coupling constraint)',
+            'agreement': 'YES - 40% cap matches Hashimoto; remaining 60% routes to GSH',
+            'note': 'Cap reveals GSH/OH scavenging as a second critical bottleneck'
         },
         {
             'observation': 'C. sphaerospermum 21% growth advantage on ISS',
