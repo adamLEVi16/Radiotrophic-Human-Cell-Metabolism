@@ -1,0 +1,11 @@
+forced_dose,feasible,atp,net_atp_from_radiation,oh_generated,oh_intercepted_dsup,oh_scavenged_gsh,dna_lesions,atp_repair_cost,oh_neutralized_pct,verdict
+0,True,111.39,0.0,0.0,0.0,0.0,0.0,0.0,100.0,"RESOURCE - net ATP gain, radical load fully neutralized"
+5,True,112.46,1.06,1.2,0.48,0.72,0.0,0.0,100.0,"RESOURCE - net ATP gain, radical load fully neutralized"
+10,True,113.52,2.13,2.4,0.96,1.44,0.0,0.0,100.0,"RESOURCE - net ATP gain, radical load fully neutralized"
+15,True,114.59,3.19,3.6,1.44,2.16,0.0,0.0,100.0,"RESOURCE - net ATP gain, radical load fully neutralized"
+20,True,115.65,4.26,4.8,1.92,2.88,0.0,0.0,100.0,"RESOURCE - net ATP gain, radical load fully neutralized"
+25,True,114.31,2.92,6.0,2.4,3.0,0.6,2.4,90.0,"STRAINED - net gain, but unrepaired-rate DNA lesions occur"
+28,True,113.23,1.83,6.72,2.69,3.0,1.03,4.13,84.6,"STRAINED - net gain, but unrepaired-rate DNA lesions occur"
+30,False,0.0,0.0,7.2,0.0,0.0,0.0,0.0,0.0,"LETHAL - defenses overwhelmed, no viable state"
+40,False,0.0,0.0,9.6,0.0,0.0,0.0,0.0,0.0,"LETHAL - defenses overwhelmed, no viable state"
+50,False,0.0,0.0,12.0,0.0,0.0,0.0,0.0,0.0,"LETHAL - defenses overwhelmed, no viable state"

@@ -1,0 +1,10 @@
+# Pinned for reproducible results. Tested with Python 3.11.
+# FBA model (radiotrophic_model.py) and dsup_analysis.py:
+cobra==0.31.1
+pandas==2.3.3
+numpy==2.4.6
+# Kinetic ODE model (kinetic_model.py):
+scipy==1.17.1
+# Note: COBRApy uses the bundled GLPK solver (swiglpk), which is
+# deterministic — the model pins SOLVER='glpk' so flux distributions
+# are reproducible run-to-run.

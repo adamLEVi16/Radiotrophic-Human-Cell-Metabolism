@@ -21,13 +21,33 @@ Literature-grounded parameters (Phase 2):
     - DNA repair cost ~4 ATP/lesion (Lindahl & Barnes 2000)
 
 Requirements:
-    pip install cobra pandas matplotlib
+    pip install -r requirements.txt   (cobra, pandas, numpy; scipy for kinetics)
+
+Reproducibility:
+    The LP solver is pinned to GLPK (deterministic), so flux distributions
+    are identical run-to-run. See requirements.txt for pinned versions.
 """
 
 import cobra
 import pandas as pd
 import json
 import os
+
+# ============================================================
+# MODEL PARAMETERS (named for transparency / reproducibility)
+# ============================================================
+# Hashimoto et al. (2016): Dsup blocks ~40% of radiation DNA damage.
+DSUP_PROTECTION_FRACTION = 0.40
+# oh_radical_c produced per unit RADIO flux (must match the RADIO reaction).
+OH_PER_RADIO = 0.24
+# Finite glutathione-mediated OH scavenging capacity. The GSH pool turns over
+# at a limited rate (selenium/NADPH/enzyme constrained), so it CANNOT neutralize
+# an unbounded radical load. This finite cap is what lets DNA damage occur at
+# high dose instead of being scavenged away for free -- essential for testing
+# whether radiation is *survivable*, not just whether it is captured.
+GSH_SCAV_CAP = 3.0
+# LP solver pinned for deterministic, reproducible flux distributions.
+SOLVER = 'glpk'
 
 # ============================================================
 # MODEL CONSTRUCTION
@@ -195,10 +215,12 @@ def build_model():
         'adp_c':4, 'pi_c':4, 'h_c':4
     })
 
-    # Hydroxyl radical scavenging (glutathione-mediated)
+    # Hydroxyl radical scavenging (glutathione-mediated). Capacity-capped:
+    # the GSH pool is finite, so beyond GSH_SCAV_CAP radicals must either be
+    # intercepted by Dsup (<=40%) or become DNA damage requiring ATP repair.
     R('OH_SCAV', 'Hydroxyl radical scavenging by GSH', {
         'oh_radical_c':-1, 'gthrd_c':-1, 'gthox_c':0.5, 'h2o_c':1
-    })
+    }, (0, GSH_SCAV_CAP))
 
     # ============================================================
     # ROS DEFENSE - NATIVE HUMAN
@@ -292,6 +314,7 @@ def build_model():
     
     model.add_reactions(rxns)
     model.objective = 'ATPM'
+    model.solver = SOLVER  # deterministic LP for reproducible fluxes
 
     # ------------------------------------------------------------
     # Dsup protection cap (coupling constraint)
@@ -301,13 +324,11 @@ def build_model():
     # hydroxyl radical through the (near-free) DSUP reaction and pays zero
     # ATP for DNA repair, overstating Dsup's benefit. Dsup is a sacrificial
     # chromatin coat: it can intercept at most ~40% of the radicals it is
-    # exposed to. OH radicals are generated only by RADIO (0.24 per flux),
-    # so the realistic ceiling is:
-    #     DSUP_flux <= 0.40 * 0.24 * RADIO_flux
-    # The remaining ~60% must route through GSH scavenging (OH_SCAV) or
-    # DNA damage -> repair (FENTON -> BER, 4 ATP/lesion).
-    DSUP_PROTECTION_FRACTION = 0.40
-    OH_PER_RADIO = 0.24  # must match the oh_radical_c coefficient in RADIO
+    # exposed to. OH radicals are generated only by RADIO (OH_PER_RADIO per
+    # flux), so the realistic ceiling is:
+    #     DSUP_flux <= DSUP_PROTECTION_FRACTION * OH_PER_RADIO * RADIO_flux
+    # The remaining ~60% must route through GSH scavenging (OH_SCAV, finite)
+    # or DNA damage -> repair (FENTON -> BER, 4 ATP/lesion).
     dsup_cap = model.problem.Constraint(
         model.reactions.get_by_id('DSUP').flux_expression
         - DSUP_PROTECTION_FRACTION * OH_PER_RADIO
@@ -328,7 +349,7 @@ def disable_engineered(model):
     model.reactions.get_by_id('NRF2').upper_bound = 0
     model.reactions.get_by_id('SOD2').upper_bound = 0
     model.reactions.get_by_id('EX_mel').upper_bound = 0
-    model.reactions.get_by_id('OH_SCAV').upper_bound = 1000  # native GSH scavenging stays on
+    model.reactions.get_by_id('OH_SCAV').upper_bound = GSH_SCAV_CAP  # finite native GSH scavenging stays on
 
 
 # ============================================================
@@ -435,14 +456,14 @@ def run_all_experiments():
     # Note: native enzyme caps set during build (SODc=4, CATc=3, GPX=3, GR=2).
     # SOD2 defaults to 0 (off); enabled explicitly for ablation comparisons.
     configs = [
-        ("All defenses ON",      {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
-        ("No Dsup",              {'RADIO':50,'DSUP':0,   'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
-        ("No Mn-AOX",            {'RADIO':50,'DSUP':1000,'MNAOX':0,   'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
-        ("No Nrf2",              {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':0,   'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
-        ("No SOD",               {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':0, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
-        ("No Catalase",          {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':0, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
+        ("All defenses ON",      {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
+        ("No Dsup",              {'RADIO':50,'DSUP':0,   'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
+        ("No Mn-AOX",            {'RADIO':50,'DSUP':1000,'MNAOX':0,   'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
+        ("No Nrf2",              {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':0,   'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
+        ("No SOD",               {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':0, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
+        ("No Catalase",          {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':0, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
         ("No OH scavenging",     {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':0,   'SOD2':0}),
-        ("Only native defenses", {'RADIO':50,'DSUP':0,   'MNAOX':0,   'NRF2':0,   'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':1000,'SOD2':0}),
+        ("Only native defenses", {'RADIO':50,'DSUP':0,   'MNAOX':0,   'NRF2':0,   'SODc':4, 'CATc':3, 'GPX':3, 'GR':2, 'OH_SCAV':GSH_SCAV_CAP,'SOD2':0}),
         ("Only engineered",      {'RADIO':50,'DSUP':1000,'MNAOX':1000,'NRF2':1000,'SODc':0, 'CATc':0, 'GPX':0, 'GR':0, 'OH_SCAV':0,   'SOD2':0}),
         ("No defenses",          {'RADIO':50,'DSUP':0,   'MNAOX':0,   'NRF2':0,   'SODc':0, 'CATc':0, 'GPX':0, 'GR':0, 'OH_SCAV':0,   'SOD2':0}),
     ]
@@ -636,6 +657,86 @@ def run_all_experiments():
         },
     ])
     results['experimental_validation'] = validation
+
+    # ----------------------------------------------------------
+    # EXPERIMENT 9: Radiation utilization under FORCED dose
+    # (the core thesis test)
+    # ----------------------------------------------------------
+    # The central question is NOT "does radiotrophy beat glucose metabolism"
+    # but "can a human cell turn radiation into a usable, SURVIVABLE energy
+    # input instead of pure damage?".
+    #
+    # A cell sitting in a radiation field cannot decline the dose, so here we
+    # FORCE the radiotrophic flux to a fixed value (melanin absorbs the field
+    # whether or not it is metabolically convenient) and ask what happens:
+    #   - energy captured from radiation (net ATP vs. zero dose)
+    #   - how the radical load partitions: intercepted (Dsup, <=40%) /
+    #     scavenged (finite GSH) / left as DNA lesions needing ATP repair
+    #   - whether a viable steady state exists at all (defenses can be
+    #     overwhelmed -> no feasible solution = the cell does not survive)
+    #   - verdict: RESOURCE / STRAINED / LETHAL
+    #
+    # Baseline (forced dose 0): same conditions, no radiation.
+    with model:
+        model.reactions.get_by_id('EX_glc').lower_bound = -5
+        model.reactions.get_by_id('RADIO').bounds = (0, 0)
+        sb = model.optimize()
+        atp_off = sb.objective_value if sb.status == 'optimal' else 0.0
+
+    rows = []
+    for dose in [0, 5, 10, 15, 20, 25, 28, 30, 40, 50]:
+        with model:
+            model.reactions.get_by_id('EX_glc').lower_bound = -5
+            # Force the cell to absorb exactly this radiation dose.
+            model.reactions.get_by_id('RADIO').bounds = (dose, dose)
+            s = model.optimize()
+
+            if s.status != 'optimal':
+                # No feasible steady state: ROS defenses are overwhelmed and
+                # the cell cannot balance the radical load -> it dies.
+                rows.append({
+                    'forced_dose': dose, 'feasible': False,
+                    'atp': 0.0, 'net_atp_from_radiation': 0.0,
+                    'oh_generated': round(dose * OH_PER_RADIO, 2),
+                    'oh_intercepted_dsup': 0.0, 'oh_scavenged_gsh': 0.0,
+                    'dna_lesions': 0.0, 'atp_repair_cost': 0.0,
+                    'oh_neutralized_pct': 0.0,
+                    'verdict': 'LETHAL - defenses overwhelmed, no viable state',
+                })
+                continue
+
+            f = s.fluxes
+            oh_gen = dose * OH_PER_RADIO
+            dsup = f['DSUP']
+            scav = f['OH_SCAV']
+            lesions = f['FENTON']          # OH that became DNA damage
+            repaired = f['BER']            # lesions repaired (= FENTON at steady state)
+            atp_on = s.objective_value
+            net = atp_on - atp_off
+            neutralized = dsup + scav
+            neut_pct = (neutralized / oh_gen * 100) if oh_gen > 1e-9 else 100.0
+
+            if net <= 1e-6 and dose > 0:
+                verdict = 'LIABILITY - radiation costs more ATP than it yields'
+            elif lesions > 1e-6:
+                verdict = 'STRAINED - net gain, but unrepaired-rate DNA lesions occur'
+            else:
+                verdict = 'RESOURCE - net ATP gain, radical load fully neutralized'
+
+            rows.append({
+                'forced_dose': dose, 'feasible': True,
+                'atp': round(atp_on, 2),
+                'net_atp_from_radiation': round(net, 2),
+                'oh_generated': round(oh_gen, 2),
+                'oh_intercepted_dsup': round(dsup, 2),
+                'oh_scavenged_gsh': round(scav, 2),
+                'dna_lesions': round(lesions, 2),
+                'atp_repair_cost': round(repaired * 4, 2),
+                'oh_neutralized_pct': round(neut_pct, 1),
+                'verdict': verdict,
+            })
+
+    results['radiation_utilization'] = pd.DataFrame(rows)
 
     return results
 
