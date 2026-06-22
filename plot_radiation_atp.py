@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 from radiotrophic_model import build_model, OH_PER_RADIO
+from calibration import flux_to_gray, REFERENCE_LETHAL_GY
 
 GLUCOSE = 5.0
 
@@ -98,8 +99,15 @@ ax1.legend(lines1 + lines2 + legend_elems,
            labs1 + labs2 + [e.get_label() for e in legend_elems],
            loc='lower left', fontsize=8, framealpha=0.9)
 
-plt.title('Radiotrophic human cell: ATP production and lethality vs. radiation dose',
-          fontsize=12, fontweight='bold')
+# --- Illustrative absolute-dose axis (anchored, see calibration.py) ---
+ax_top = ax1.secondary_xaxis('top', functions=(flux_to_gray,
+                                               lambda g: g / flux_to_gray(1)))
+ax_top.set_xlabel('Illustrative absolute dose (Gy, anchored -- approximate)',
+                  fontsize=9, color='dimgray')
+ax_top.tick_params(colors='dimgray', labelsize=8)
+
+ax1.set_title('Radiotrophic human cell: ATP production and lethality vs. radiation dose',
+              fontsize=12, fontweight='bold', pad=34)
 fig.tight_layout()
 fig.savefig('radiation_atp_lethality.png', dpi=150)
 print(f'baseline ATP (no radiation): {atp_baseline:.2f}')
