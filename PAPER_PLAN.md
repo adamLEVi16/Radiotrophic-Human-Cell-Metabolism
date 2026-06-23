@@ -68,7 +68,8 @@ demonstrated phenotype.
    - R1: Dose–response and the three-regime arc (main figure).
    - R2: Defense ablation → SOD as single point of failure.
    - R3: Dsup capped vs uncapped → why the constraint matters.
-   - R4: Bottleneck relief (MnSOD2 + synthetic melanin) → near-doubling of ceiling.
+   - R4: Bottleneck relief → the limit is OH-neutralisation (Dsup 40% + finite
+     GSH), NOT SOD; MnSOD2 alone does nothing, relieving GSH lifts the ceiling.
    - R5: Combined stress (glucose/O₂ starvation) → radiotrophy as a survival
      supplement; the zero-glucose "lives on radiation alone" case.
    - R6: ROS-coefficient sensitivity → result is robust to the most uncertain param.
@@ -81,9 +82,12 @@ demonstrated phenotype.
 ## 5. Figures & tables (mostly already generated)
 
 - **Fig 1** ✅ `radiation_atp_lethality.png` — ATP + lesions vs dose, three regimes.
-- **Fig 2** ⬜ Defense-ablation bar chart (from `ablation.csv`).
-- **Fig 3** ⬜ Bottleneck-relief comparison (from `bottleneck_relief.csv`).
-- **Fig 4** ⬜ ROS-coefficient sensitivity (from `ros_sensitivity.csv`).
+- **Fig 2** ✅ `fig_ablation.png` — defense knockouts; SOD & OH-scavenging are
+  single points of failure.
+- **Fig 3** ✅ `fig_bottleneck_relief.png` — lifting the ceiling; MnSOD2 alone
+  has no effect, GSH relief does.
+- **Fig 4** ✅ `fig_ros_sensitivity.png` — net benefit robust across the ROS-cost
+  range; lesions appear only at low ROS cost / high flux.
 - **Fig 5** ⬜ Kinetic transients/recovery (from `kinetic_model.py` outputs).
 - **Table 1** ✅ Gene-transfer feasibility (`gene_comparison.csv` / Dsup scores).
 - **Table 2** ✅ Literature validation (`experimental_validation.csv`, reframed).
@@ -91,11 +95,14 @@ demonstrated phenotype.
 ## 6. Roadmap to a submittable draft
 
 - **Milestone A — Solidify the science (highest priority)**
-  - Add ablation / bottleneck / sensitivity plots (Figs 2–4) as scripts.
-  - Decide the dose-units stance: commit to "relative units + anchored
+  - ✅ Ablation / bottleneck / sensitivity plots (Figs 2–4) — `plot_experiments.py`.
+  - ✅ ROS-coefficient sensitivity (Fig 4) shows the net benefit is robust across
+    the most uncertain parameter.
+  - ⬜ Decide the dose-units stance: commit to "relative units + anchored
     illustration," or attempt a defensible re-dimensioning. Recommend the former
     for v1.
-  - Add ≥1 robustness check showing the 3-regime arc survives parameter variation.
+  - ⬜ One more robustness check: confirm the 3-regime arc survives variation in
+    GSH_SCAV_CAP and the Dsup fraction (not just the ROS coefficient).
 - **Milestone B — Write Methods + Results** around the existing figures.
 - **Milestone C — Write Intro/Discussion/Limitations**, get the framing right
   (feasibility, not phenotype).

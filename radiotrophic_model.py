@@ -562,28 +562,34 @@ def run_all_experiments():
 
     # ----------------------------------------------------------
     # EXPERIMENT 7: Bottleneck relief strategies
-    # Tests engineering solutions to increase radiotrophic flux:
-    #   A) Baseline (current model, SOD-limited)
-    #   B) MnSOD2 overexpression (doubles SOD capacity)
-    #   C) Synthetic melanin loading (bypasses biosynthesis)
-    #   D) Both SOD2 + synthetic melanin
-    #   E) Full optimization (SOD2 + melanin + increased tyrosine)
     # ----------------------------------------------------------
+    # With the finite-GSH and Dsup-40% corrections, the radiotrophic ceiling
+    # is no longer set by SOD alone but by OH-NEUTRALISATION capacity
+    # (Dsup <=40% + finite GSH scavenging). This experiment relieves the
+    # binding constraints in turn to show how the ceiling lifts:
+    #   A) Baseline (OH-neutralisation limited)
+    #   B) +GSH scavenging capacity (relieve the new OH bottleneck)
+    #   C) +MnSOD2 only (SOD was NOT binding -> little/no effect)
+    #   D) +GSH + MnSOD2 (relieve both ROS bottlenecks together)
+    #   E) Full: +GSH +SOD2 +synthetic melanin +higher RADIO cap
     rows = []
     strategies = [
-        ('A: Baseline',             {'SOD2': 0,  'EX_mel': 0,  'EX_tyr': -5}),
-        ('B: +MnSOD2 (cap=4)',      {'SOD2': 4,  'EX_mel': 0,  'EX_tyr': -5}),
-        ('C: +Synthetic melanin',   {'SOD2': 0,  'EX_mel': 5,  'EX_tyr': -5}),
-        ('D: +SOD2 + synth melanin',{'SOD2': 4,  'EX_mel': 5,  'EX_tyr': -5}),
-        ('E: Full optimization',    {'SOD2': 8,  'EX_mel': 10, 'EX_tyr': -10}),
+        # (label, OH_SCAV cap, SOD2 cap, EX_mel cap, EX_tyr lb, RADIO cap)
+        ('A: Baseline',              dict(oh=GSH_SCAV_CAP, sod2=0, mel=0,  tyr=-5,  radio=50)),
+        ('B: +GSH capacity',         dict(oh=6.0,          sod2=0, mel=0,  tyr=-5,  radio=50)),
+        ('C: +MnSOD2 only',          dict(oh=GSH_SCAV_CAP, sod2=4, mel=0,  tyr=-5,  radio=50)),
+        ('D: +GSH + MnSOD2',         dict(oh=6.0,          sod2=4, mel=0,  tyr=-5,  radio=50)),
+        ('E: Full optimization',     dict(oh=10.0,         sod2=8, mel=10, tyr=-10, radio=100)),
     ]
 
     for label, cfg in strategies:
         with model:
             model.reactions.get_by_id('EX_glc').lower_bound = -5
-            model.reactions.get_by_id('SOD2').upper_bound = cfg['SOD2']
-            model.reactions.get_by_id('EX_mel').upper_bound = cfg['EX_mel']
-            model.reactions.get_by_id('EX_tyr').lower_bound = cfg['EX_tyr']
+            model.reactions.get_by_id('OH_SCAV').upper_bound = cfg['oh']
+            model.reactions.get_by_id('SOD2').upper_bound = cfg['sod2']
+            model.reactions.get_by_id('EX_mel').upper_bound = cfg['mel']
+            model.reactions.get_by_id('EX_tyr').lower_bound = cfg['tyr']
+            model.reactions.get_by_id('RADIO').upper_bound = cfg['radio']
             sol = model.optimize()
             if sol.status == 'optimal':
                 f = sol.fluxes
@@ -591,9 +597,10 @@ def run_all_experiments():
                     'strategy': label,
                     'atp': round(sol.objective_value, 2),
                     'radio_flux': round(f['RADIO'], 2),
+                    'oh_scav_flux': round(f['OH_SCAV'], 2),
+                    'dsup_flux': round(f['DSUP'], 2),
                     'sod1_flux': round(f['SODc'], 2),
                     'sod2_flux': round(f['SOD2'], 2),
-                    'melanin_synth': round(f['MELSYN'], 2),
                     'melanin_loaded': round(f['EX_mel'], 2),
                     'total_superoxide': round(f['RADIO'] * 0.28, 2),
                     'total_oh': round(f['RADIO'] * 0.24, 2),

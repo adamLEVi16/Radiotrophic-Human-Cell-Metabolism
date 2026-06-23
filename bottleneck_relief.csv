@@ -1,6 +1,6 @@
-strategy,atp,radio_flux,sod1_flux,sod2_flux,melanin_synth,melanin_loaded,total_superoxide,total_oh,status
-A: Baseline,115.83,20.83,2.92,0.0,0.42,0.0,5.83,5.0,optimal
-B: +MnSOD2 (cap=4),115.83,20.83,2.92,0.0,0.42,0.0,5.83,5.0,optimal
-C: +Synthetic melanin,123.22,20.83,2.92,0.0,0.0,0.42,5.83,5.0,optimal
-D: +SOD2 + synth melanin,123.22,20.83,2.92,0.0,0.0,0.42,5.83,5.0,optimal
-E: Full optimization,123.22,20.83,2.92,0.0,0.0,0.42,5.83,5.0,optimal
+strategy,atp,radio_flux,oh_scav_flux,dsup_flux,sod1_flux,sod2_flux,melanin_loaded,total_superoxide,total_oh,status
+A: Baseline,115.83,20.83,3.0,2.0,2.92,0.0,0.0,5.83,5.0,optimal
+B: +GSH capacity,117.47,28.57,4.11,2.74,4.0,0.0,0.0,8.0,6.86,optimal
+C: +MnSOD2 only,115.83,20.83,3.0,2.0,2.92,0.0,0.0,5.83,5.0,optimal
+D: +GSH + MnSOD2,120.26,41.67,6.0,4.0,4.0,1.83,0.0,11.67,10.0,optimal
+E: Full optimization,150.82,69.44,10.0,6.67,4.0,5.72,1.39,19.44,16.67,optimal

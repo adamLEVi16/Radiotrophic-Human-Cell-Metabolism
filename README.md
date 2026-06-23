@@ -38,8 +38,17 @@ produces a clear three-regime arc:
 
 So radiation is a usable, survivable energy source **up to a defense-limited
 ceiling**, costly beyond it, and fatal once the antioxidant defenses are
-overwhelmed. The lethal cliff is set by **superoxide dismutase (SOD) capacity** —
-the single point of failure identified by the ablation analysis.
+overwhelmed.
+
+Supporting analyses (`plot_experiments.py`):
+- **Ablation** (`fig_ablation.png`): **SOD** and **OH-scavenging** are each a
+  single point of failure — knock out either and radiotrophy collapses to zero.
+- **Bottleneck relief** (`fig_bottleneck_relief.png`): the ceiling is set by
+  OH-neutralisation capacity (Dsup's 40% + the finite GSH pool), *not* by SOD —
+  so adding MnSOD2 alone does nothing; relieving glutathione capacity is what
+  lifts the ceiling.
+- **Robustness** (`fig_ros_sensitivity.png`): the net benefit persists across the
+  full range of the most uncertain parameter (ROS produced per NADH).
 
 ## Model
 
