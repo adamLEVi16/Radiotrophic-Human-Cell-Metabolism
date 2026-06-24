@@ -104,8 +104,10 @@ demonstrated phenotype.
   - ⬜ One more robustness check: confirm the 3-regime arc survives variation in
     GSH_SCAV_CAP and the Dsup fraction (not just the ROS coefficient).
 - **Milestone B — Write Methods + Results** around the existing figures.
+  ✅ Full draft in `MANUSCRIPT.md` (Abstract → Conclusion, all 5 figures + 2
+  tables cited, honest Limitations section).
 - **Milestone C — Write Intro/Discussion/Limitations**, get the framing right
-  (feasibility, not phenotype).
+  (feasibility, not phenotype). ✅ Included in `MANUSCRIPT.md`.
 - **Milestone D — Internal review pass**, then bioRxiv preprint.
 - **Milestone E (optional, major)** — design a wet-lab validation proposal
   (melanized HEK293 + Dsup under controlled dose) as a follow-up grant/paper.
