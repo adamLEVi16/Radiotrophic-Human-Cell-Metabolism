@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+manuscript.pdf
+*.aux
+*.log
+*.out
