@@ -69,8 +69,8 @@ def fig_bottleneck_relief():
         ax1.text(xi - 0.2, v + 0.6, f'{v:g}', ha='center', fontsize=8, color=BLUE)
 
     ax2 = ax1.twinx()
-    ax2.bar(x + 0.2, df['atp'], width=0.4, color=GREEN, alpha=0.8,
-            label='ATP production')
+    atp_bars = ax2.bar(x + 0.2, df['atp'], width=0.4, color=GREEN, alpha=0.8,
+                       label='ATP production')
     ax2.set_ylabel('ATP production', color=GREEN, fontsize=11)
     ax2.tick_params(axis='y', labelcolor=GREEN)
     ax2.set_ylim(110, df['atp'].max() * 1.05)
@@ -84,8 +84,8 @@ def fig_bottleneck_relief():
              'Relieving OH-neutralisation (GSH) is what lifts the ceiling.',
              transform=ax1.transAxes, ha='center', va='top', fontsize=8,
              color=GRAY, style='italic')
-    lines = bars.get_children()
-    ax1.legend(loc='upper left', fontsize=8)
+    ax1.legend([bars, atp_bars], ['radiotrophic ceiling (flux)', 'ATP production'],
+               loc='upper left', fontsize=8)
     fig.tight_layout()
     fig.savefig('fig_bottleneck_relief.png', dpi=150)
     plt.close(fig)

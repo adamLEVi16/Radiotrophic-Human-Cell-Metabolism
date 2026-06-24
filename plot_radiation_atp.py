@@ -14,8 +14,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
-from radiotrophic_model import build_model, OH_PER_RADIO
-from calibration import flux_to_gray, REFERENCE_LETHAL_GY
+from radiotrophic_model import build_model
+from calibration import flux_to_gray
 
 GLUCOSE = 5.0
 
@@ -74,9 +74,14 @@ ax2.tick_params(axis='y', labelcolor='#d62728')
 ax2.set_ylim(bottom=0)
 
 # --- Regime shading ---
+# RESOURCE runs from 0 to the first transition (lesions appear, else lethal,
+# else the end of the swept range). STRAINED only exists if lesions appear
+# before lethality. This stays correct even if there is no STRAINED band.
 xmax = doses.max()
+resource_end = strain_dose if strain_dose is not None else (
+    lethal_dose if lethal_dose is not None else xmax)
+ax1.axvspan(0, resource_end, color='#2ca02c', alpha=0.08)
 if strain_dose is not None:
-    ax1.axvspan(0, strain_dose, color='#2ca02c', alpha=0.08)
     ax1.axvspan(strain_dose, lethal_dose if lethal_dose else xmax,
                 color='#ff7f0e', alpha=0.10)
 if lethal_dose is not None:

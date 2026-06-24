@@ -44,23 +44,37 @@ def find_lethal_flux(step=0.5, hi=60):
 
 
 # Conversion factor: Gy per unit model flux, anchored at the lethal point.
-_LETHAL_FLUX = find_lethal_flux()
-FLUX_TO_GRAY = REFERENCE_LETHAL_GY / _LETHAL_FLUX if _LETHAL_FLUX else None
+# Computed lazily on first use (a small LP sweep) and cached, so merely
+# importing this module does NOT run an optimization sweep.
+_FLUX_TO_GRAY = None        # cached factor
+_LETHAL_FLUX = None         # cached lethal-threshold flux
+
+
+def _ensure_calibrated():
+    global _FLUX_TO_GRAY, _LETHAL_FLUX
+    if _LETHAL_FLUX is None:
+        _LETHAL_FLUX = find_lethal_flux()
+        if not _LETHAL_FLUX:
+            raise RuntimeError(
+                'Calibration failed: model never reaches a lethal threshold in '
+                'the swept range, so the flux->Gy anchor is undefined. Raise '
+                'find_lethal_flux(hi=...) or check the model.')
+        _FLUX_TO_GRAY = REFERENCE_LETHAL_GY / _LETHAL_FLUX
+    return _FLUX_TO_GRAY
 
 
 def flux_to_gray(flux):
     """Illustrative absolute dose (Gy) for a model flux. Anchored, approximate."""
-    if FLUX_TO_GRAY is None:
-        return float('nan')
-    return flux * FLUX_TO_GRAY
+    return flux * _ensure_calibrated()
 
 
 if __name__ == '__main__':
+    factor = _ensure_calibrated()
     print('Radiation calibration (ILLUSTRATIVE / ANCHORED -- not validated)')
     print('-' * 64)
     print(f'Model lethal threshold flux : {_LETHAL_FLUX:g}')
     print(f'Anchored to                 : {REFERENCE_LETHAL_GY:g} Gy (acute, mammalian)')
-    print(f'=> illustrative factor      : {FLUX_TO_GRAY:.3f} Gy per flux unit')
+    print(f'=> illustrative factor      : {factor:.3f} Gy per flux unit')
     print()
     for f in [21, 25, 29]:
         print(f'  flux {f:>3}  ~  {flux_to_gray(f):>4.1f} Gy (illustrative)')

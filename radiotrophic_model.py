@@ -38,8 +38,10 @@ import os
 # ============================================================
 # Hashimoto et al. (2016): Dsup blocks ~40% of radiation DNA damage.
 DSUP_PROTECTION_FRACTION = 0.40
-# oh_radical_c produced per unit RADIO flux (must match the RADIO reaction).
+# ROS produced per unit RADIO flux. These MUST match the RADIO reaction
+# stoichiometry (enforced by an assertion in build_model so they cannot drift).
 OH_PER_RADIO = 0.24
+SUPEROXIDE_PER_RADIO = 0.28
 # Finite glutathione-mediated OH scavenging capacity. The GSH pool turns over
 # at a limited rate (selenium/NADPH/enzyme constrained), so it CANNOT neutralize
 # an unbounded radical load. This finite cap is what lets DNA damage occur at
@@ -316,6 +318,16 @@ def build_model():
     model.objective = 'ATPM'
     model.solver = SOLVER  # deterministic LP for reproducible fluxes
 
+    # Enforce that the ROS-per-flux constants match the RADIO stoichiometry.
+    # The Dsup cap and several experiments rely on these; if the reaction
+    # coefficients are ever edited without updating the constants the results
+    # would be silently wrong, so fail loudly here instead.
+    _radio = model.reactions.get_by_id('RADIO')
+    assert abs(_radio.metabolites[M['oh_radical_c']] - OH_PER_RADIO) < 1e-9, \
+        'OH_PER_RADIO does not match RADIO reaction stoichiometry'
+    assert abs(_radio.metabolites[M['o2s_c']] - SUPEROXIDE_PER_RADIO) < 1e-9, \
+        'SUPEROXIDE_PER_RADIO does not match RADIO reaction stoichiometry'
+
     # ------------------------------------------------------------
     # Dsup protection cap (coupling constraint)
     # ------------------------------------------------------------
@@ -444,8 +456,8 @@ def run_all_experiments():
                     'dna_repair': round(sol.fluxes['BER'], 2),
                     'oh_scavenged': round(sol.fluxes['OH_SCAV'], 2),
                     'melanin_consumed': round(sol.fluxes['RADIO'] * 0.02, 2),
-                    'superoxide_generated': round(sol.fluxes['RADIO'] * 0.28, 2),
-                    'oh_generated': round(sol.fluxes['RADIO'] * 0.24, 2)
+                    'superoxide_generated': round(sol.fluxes['RADIO'] * SUPEROXIDE_PER_RADIO, 2),
+                    'oh_generated': round(sol.fluxes['RADIO'] * OH_PER_RADIO, 2)
                 })
     
     results['dose_response'] = pd.DataFrame(rows)
@@ -532,7 +544,7 @@ def run_all_experiments():
         m_sens = build_model()
         radio_rxn = m_sens.reactions.get_by_id('RADIO')
         o2s_met = [mt for mt in radio_rxn.metabolites if 'o2s_c' in mt.id][0]
-        radio_rxn.add_metabolites({o2s_met: ros_coeff - 0.28})  # delta from default 0.28
+        radio_rxn.add_metabolites({o2s_met: ros_coeff - SUPEROXIDE_PER_RADIO})  # delta from default
 
         # Generous O2 to isolate ROS cost from O2 budget artifact
         m_sens.reactions.get_by_id('EX_o2').lower_bound = -100
@@ -602,8 +614,8 @@ def run_all_experiments():
                     'sod1_flux': round(f['SODc'], 2),
                     'sod2_flux': round(f['SOD2'], 2),
                     'melanin_loaded': round(f['EX_mel'], 2),
-                    'total_superoxide': round(f['RADIO'] * 0.28, 2),
-                    'total_oh': round(f['RADIO'] * 0.24, 2),
+                    'total_superoxide': round(f['RADIO'] * SUPEROXIDE_PER_RADIO, 2),
+                    'total_oh': round(f['RADIO'] * OH_PER_RADIO, 2),
                     'status': sol.status
                 })
 
