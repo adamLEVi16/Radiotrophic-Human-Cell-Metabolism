@@ -50,6 +50,17 @@ Supporting analyses (`plot_experiments.py`):
 - **Robustness** (`fig_ros_sensitivity.png`): the net benefit persists across the
   full range of the most uncertain parameter (ROS produced per NADH).
 
+## How the treatment works
+
+![Mechanism: radiation impacting the engineered cell](fig_mechanism.png)
+
+Radiation is absorbed by **melanin**, which drives radiotrophic NADH generation →
+ATP in the mitochondria. The same process produces reactive oxygen species
+(superoxide, hydroxyl radicals) as a byproduct; the layered defenses neutralize
+them — SOD/MnSOD2 → catalase/GPX for superoxide, glutathione scavenging plus the
+tardigrade **Dsup** shield for hydroxyl radicals — so that, up to a defense-limited
+dose, the cell gains energy while its DNA stays protected.
+
 ## Model
 
 A constraint-based (flux-balance) metabolic model built with COBRApy:
