@@ -109,6 +109,9 @@ demonstrated phenotype.
 - **Milestone D — Internal review pass**, then bioRxiv preprint.
 - **Milestone E (optional, major)** — design a wet-lab validation proposal
   (melanized HEK293 + Dsup under controlled dose) as a follow-up grant/paper.
+  ✅ Drafted in `WETLAB_VALIDATION.md` — the decisive design isolates energy
+  *capture* (the novel claim) from radio*protection* (already known) via a
+  melanin × radiation × glucose factorial.
 
 ## 7. Top risks / objections to pre-empt
 
