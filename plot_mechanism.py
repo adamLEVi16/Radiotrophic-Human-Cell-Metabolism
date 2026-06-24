@@ -65,24 +65,26 @@ ax.text(33, 60.5, 'Melanin\n(radiation absorber)', ha='center', fontsize=10,
 box(46, 64, 20, 8, 'Radiotrophic\nNADH generation', '#d5f5e3', ENERGY, 10, lw=2)
 arrow(40, 69, 46, 68, color=ENERGY, lw=2.5)
 
-# Mitochondrion
-mito = Ellipse((78, 60), 22, 14, fc='#fdebd0', ec='#e67e22', lw=2, zorder=2)
+# Mitochondrion (label sits inside on a white pad so cristae don't clash)
+mito = Ellipse((79, 60), 22, 14, fc='#fdebd0', ec='#e67e22', lw=2, zorder=2)
 ax.add_patch(mito)
 for i in range(4):  # cristae
-    ax.add_patch(Ellipse((72 + i * 3.5, 60), 2.2, 9, fc='none', ec='#e67e22',
+    ax.add_patch(Ellipse((73 + i * 3.3, 60), 2.0, 7.5, fc='none', ec='#e67e22',
                  lw=1, zorder=2))
-ax.text(78, 68.5, 'Mitochondrion (ETC)', ha='center', fontsize=9.5, color='#a04000')
-arrow(66, 68, 73, 62, color=ENERGY, lw=2.5)
-box(84, 70, 12, 7, 'ATP ⚡', '#abebc6', ENERGY, 12, lw=2)
-arrow(83, 61, 88, 70, color=ENERGY, lw=2.5)
+ax.text(79, 60, 'Mitochondrion\n(ETC → ATP)', ha='center', va='center',
+        fontsize=9, color='#a04000', fontweight='bold', zorder=5,
+        bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none', alpha=0.78))
+arrow(66, 68, 73, 63, color=ENERGY, lw=2.5)
+box(85, 69, 11, 7, 'ATP ⚡', '#abebc6', ENERGY, 12, lw=2)
+arrow(86, 60, 90, 69, color=ENERGY, lw=2.5)
 
 # ---- ROS byproducts (red) branching down from the radiotrophic step ----
-ax.text(50, 57, 'byproduct: reactive oxygen species', ha='center', fontsize=9,
+ax.text(42, 58, 'byproduct: reactive oxygen species', ha='center', fontsize=9,
         color=DAMAGE, style='italic')
 box(20, 46, 16, 7, 'Superoxide\nO₂•⁻', '#fadbd8', DAMAGE, 10, lw=1.5)
 box(58, 46, 16, 7, 'Hydroxyl radical\n•OH', '#fadbd8', DAMAGE, 10, lw=1.5)
-arrow(52, 64, 30, 53, color=DAMAGE, lw=2, ls=':')
-arrow(56, 64, 64, 53, color=DAMAGE, lw=2, ls=':')
+arrow(50, 64, 30, 53, color=DAMAGE, lw=2, ls=':')
+arrow(54, 64, 64, 53, color=DAMAGE, lw=2, ls=':')
 
 # ---- Superoxide defense chain: SOD -> H2O2 -> catalase/GPX -> water ----
 box(16, 33, 13, 7, 'SOD\n+ MnSOD2*', '#e8daef', ENGINEER, 9, lw=1.5)
@@ -94,29 +96,34 @@ arrow(36, 33, 26, 29, color='black', lw=1.8)
 box(33, 22, 12, 7, 'H₂O\n(safe)', '#d5f5e3', ENERGY, 9.5, lw=1.5)
 arrow(30, 25.5, 33, 25.5, color=ENERGY, lw=2)
 
+# Failure-point callout: superoxide is the species that overwhelms SOD first.
+ax.annotate('⚠ FAILS FIRST\nO₂•⁻ overwhelms SOD\npast the dose ceiling',
+            xy=(17, 33.5), xytext=(2.5, 13.5), fontsize=8.5, color=DAMAGE,
+            fontweight='bold', ha='left', va='center', zorder=6,
+            arrowprops=dict(arrowstyle='->', color=DAMAGE, lw=1.6))
+
 # ---- OH defense: GSH scavenging + Dsup shield -> protect DNA ----
-box(55, 33, 16, 7, 'GSH scavenging\n(finite pool)', '#d6eaf8', NATIVE, 9, lw=1.5)
-arrow(64, 46, 63, 40, color=DAMAGE, lw=2)
+box(49, 33, 16, 7, 'GSH scavenging\n(finite pool)', '#d6eaf8', NATIVE, 9, lw=1.5)
+arrow(64, 46, 60, 40, color=DAMAGE, lw=2)
 
 # Nucleus with Dsup shield
-ax.add_patch(Wedge((75, 22), 11, 0, 360, width=2.2, fc='none', ec=ENGINEER,
+ax.add_patch(Wedge((78, 21), 10, 0, 360, width=2.0, fc='none', ec=ENGINEER,
              lw=2.5, ls='--', zorder=3))
-ax.add_patch(Circle((75, 22), 8.5, fc='#d6eaf8', ec=NATIVE, lw=1.5, zorder=3))
-# little DNA helix
+ax.add_patch(Circle((78, 21), 8, fc='#d6eaf8', ec=NATIVE, lw=1.5, zorder=3))
 t = np.linspace(0, 4 * np.pi, 100)
-ax.plot(75 + 2.2 * np.sin(t), 17 + t * 0.55, color=NATIVE, lw=1.2, zorder=4)
-ax.plot(75 - 2.2 * np.sin(t), 17 + t * 0.55, color=NATIVE, lw=1.2, zorder=4)
-ax.text(75, 22, 'DNA', ha='center', va='center', fontsize=9, zorder=5,
+ax.plot(78 + 2.0 * np.sin(t), 16.5 + t * 0.5, color=NATIVE, lw=1.2, zorder=4)
+ax.plot(78 - 2.0 * np.sin(t), 16.5 + t * 0.5, color=NATIVE, lw=1.2, zorder=4)
+ax.text(78, 21, 'DNA', ha='center', va='center', fontsize=9, zorder=5,
         fontweight='bold', color='#154360')
-ax.text(75, 33.5, 'Dsup* DNA shield', ha='center', fontsize=9,
+ax.text(78, 32.5, 'Dsup* DNA shield', ha='center', fontsize=9,
         color=ENGINEER, fontweight='bold')
-arrow(62, 33, 69, 27, color=DAMAGE, lw=2, ls=':')      # residual OH toward nucleus
-arrow(72, 30, 73, 27, color=ENGINEER, lw=2)             # Dsup intercept
+arrow(60, 33, 71, 26, color=DAMAGE, lw=2, ls=':')      # residual OH toward nucleus
+arrow(75, 29, 76, 26, color=ENGINEER, lw=2)             # Dsup intercept
 
-# ---- Outcome banner ----
-box(30, 11, 40, 6.5,
-    'OUTCOME (up to a defense-limited dose):  + ATP gained   ✓ DNA protected',
-    '#eafaf1', ENERGY, 11, ENERGY, lw=2)
+# ---- Outcome banner (bottom-left, clear of the nucleus on the right) ----
+box(20, 9.5, 42, 5.5,
+    'OUTCOME (up to the dose ceiling):   ⚡ ATP gained    ✓ DNA protected',
+    '#eafaf1', ENERGY, 10, ENERGY, lw=2)
 
 # ---- Legend ----
 legend = [
