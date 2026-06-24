@@ -19,23 +19,26 @@ metabolic model of a human cell (56 reactions, 52 metabolites) augmented with a
 melanin-driven radiotrophic NADH-generating pathway and a layered set of native
 and cross-species engineered reactive-oxygen-species (ROS) defenses (superoxide
 dismutase, catalase, glutathione peroxidase, tardigrade Dsup, *Deinococcus*
-Mn-antioxidant, Nrf2, and overexpressed MnSOD2). Under a forced-dose protocol —
-in which the cell cannot decline the radiation it absorbs — the model produces a
+Mn-antioxidant, Nrf2, and overexpressed MnSOD2). Under a forced-dose protocol,
+in which the cell cannot decline the radiation it absorbs, the model produces a
 clear three-regime response: a **RESOURCE** regime in which radiation yields net
-ATP with the radical load fully neutralized and zero net DNA damage; a
+ATP with the radical load fully neutralized and zero modeled DNA lesions; a
 **STRAINED** regime in which defenses saturate, DNA lesions accrue, and net ATP
 declines while remaining positive; and a **LETHAL** regime in which no feasible
-metabolic steady state exists (cell death). Defense-ablation analysis identifies
+metabolic steady state exists (interpreted cautiously as loss of viability).
+Defense-ablation analysis identifies
 superoxide dismutase and glutathione-mediated radical scavenging as the two
 single points of failure, and a targeted analysis shows that **superoxide, not
-hydroxyl radical, is the species that overwhelms the cell first** — because
+hydroxyl radical, is the species that overwhelms the cell first**, because
 hydroxyl damage can be paid down through ATP-dependent repair whereas superoxide
 has only the capacity-limited SOD exit. The qualitative result is robust to the
 most uncertain model parameter. These findings frame a concrete, testable
-hypothesis and an engineering priority list (chiefly SOD augmentation), and we
-propose a wet-lab experiment designed to isolate energy capture from
-radioprotection. We emphasize that the model's radiation axis is not physically
-dimensioned and that no claim here has been experimentally validated.
+hypothesis and a wet-lab experiment designed to isolate energy capture from
+radioprotection. We emphasize the boundaries of the claim: the central
+radiotrophic reaction is assumed rather than demonstrated, the model's radiation
+axis is not physically dimensioned, and no result here has been experimentally
+validated. The model tests the consequences of the radiotrophy hypothesis; it
+does not establish that biological radiotrophy is achievable in human cells.
 
 ---
 
@@ -103,6 +106,16 @@ biosynthesis is modeled from tyrosine via tyrosinase and a lumped melanin-
 synthesis reaction. The objective is ATP maintenance (a non-growth ATP demand),
 maximized by flux-balance analysis.
 
+This is a small, purpose-built reconstruction rather than a genome-scale human
+model such as Recon3D. Reactions were selected to cover only the pathways relevant
+to the hypothesis (central energy metabolism, ROS production and defense, and
+melanin synthesis); the large majority of human metabolism (biosynthesis, nutrient
+signaling, alternative substrates, compartment detail) is deliberately excluded.
+The motivation is transparency: every reaction and capacity constraint can be
+inspected and justified individually, which a genome-scale model does not permit.
+The cost is metabolic coverage, and this restricted scope is a central limitation
+(Section 5); a genome-scale re-grounding is proposed as future work.
+
 ### 2.2 The radiotrophic pathway and ROS production
 
 The novel reaction, RADIO, represents melanin-mediated transduction of radiation
@@ -114,6 +127,15 @@ radiolysis G-values (Buxton et al. 1988) adjusted for partial melanin quenching
 of energy transduction (consistent with the ATP decline reported by Bryan et al.
 2011). The ROS-per-flux constants are enforced to match the reaction
 stoichiometry by a build-time assertion, so they cannot silently drift.
+
+RADIO represents a *hypothesized* transduction mechanism, not an experimentally
+confirmed biochemical reaction. The change in melanin's electronic properties
+under irradiation is supported (Dadachova et al. 2007; Turick et al. 2011), but
+the direct conversion of that energy into cellular reducing equivalents (NADH) is
+far less established. This reaction is therefore the central assumption of the
+study rather than one of its conclusions: the model tests what follows *if* such a
+transduction step exists, and to that extent assumes the phenomenon it
+investigates. All downstream results are conditional on this assumption.
 
 ### 2.3 ROS defenses
 
@@ -143,7 +165,9 @@ the central experiment fixes RADIO flux to a series of values (rather than letti
 the optimizer choose it) and asks, at each: how much net ATP is produced relative
 to zero dose; how the radical load partitions among interception, scavenging, and
 DNA lesions; and whether any feasible steady state exists at all. Infeasibility is
-interpreted as the cell being unable to balance the radical load — i.e., death.
+interpreted as the cell being unable to balance the radical load, that is, loss of
+viability (with the caveat in Section 5 that this is not equivalent to biological
+cell death).
 
 ### 2.5 Reproducibility
 
@@ -152,13 +176,15 @@ are named constants, and dependency versions are pinned. Outputs are byte-
 identical across runs, and a suite of eight invariant tests guards the central
 findings (baseline ATP, the Dsup 40% cap, finite scavenging, the three-regime
 arc, the SOD single-point-of-failure, and determinism). All code and data are
-released.
+maintained in a version-controlled project repository (see Data and code
+availability).
 
 ### 2.6 Dose calibration (illustrative only)
 
 We attempted to convert the model's flux axis to absorbed dose (Gray) using
 radiolysis G-values. This first-principles calibration overshoots realistic
-lethal doses by ~10⁶, confirming that the model's fluxes are *relative*, not
+lethal doses by ~10⁶-fold (about six orders of magnitude), confirming that the
+model's fluxes are *relative*, not
 physically dimensioned. We therefore report an explicitly **illustrative,
 anchored** scale, matching the model's lethal threshold to a representative acute
 mammalian lethal dose (~10 Gy); absolute Gy values in figures are approximate
@@ -174,7 +200,7 @@ Under the forced-dose protocol, the model produces a characteristic three-regime
 response (**Figure 2**):
 
 - **RESOURCE** (low dose): ATP production rises monotonically with dose, the
-  radical load is **100% neutralized**, and **no DNA lesions** occur. Net ATP
+  radical load is **100% neutralized**, and **no modeled DNA lesions** occur. Net ATP
   gain relative to the unirradiated baseline (111.4) reaches +4.3 at the ceiling
   (peak ATP ≈ 115.8). Here radiation is unambiguously a usable, harm-free energy
   input.
@@ -182,8 +208,11 @@ response (**Figure 2**):
   neutralized falls (to ~85% at the upper end), DNA lesions appear and are
   repaired at ATP cost, and net ATP declines but remains positive. Radiation is
   still net-beneficial, but increasingly costly.
-- **LETHAL** (high dose): no feasible metabolic steady state exists. The ROS load
-  cannot be balanced, which we interpret as cell death.
+- **LETHAL** (high dose): no feasible metabolic steady state exists; the ROS load
+  cannot be balanced. We interpret this cautiously as loss of viability, noting
+  that flux-balance infeasibility is a steady-state statement and is not equivalent
+  to biological cell death, which involves dynamics and adaptive responses the
+  model does not capture (Section 5).
 
 This arc is the central result: it shows that, within the model, radiation can be
 a net-positive, survivable input **up to a defense-limited ceiling**, beyond which
@@ -257,9 +286,14 @@ precise value of the most uncertain parameter.
 ## 4. Discussion
 
 Taken together, the results support the alternative hypothesis **within the
-model**: an engineered human cell can, in silico, treat radiation as a usable and
-survivable energy input rather than as pure damage, up to a defense-limited dose.
-The contribution is threefold. First, it reframes radiation for engineered human
+model**: under its stated assumptions, the model predicts that an engineered human
+cell could treat radiation as a usable and survivable energy input rather than as
+pure damage, up to a defense-limited dose. It is worth stating plainly what this
+does and does not mean. The model demonstrates internal, mathematical feasibility
+given the radiotrophic transduction assumption; it does not demonstrate that
+biological radiotrophy is achievable in human cells, and a skeptical reading is
+that it shows the hypothesis is self-consistent rather than correct. With that
+boundary fixed, the contribution is threefold. First, it reframes radiation for engineered human
 cells from a strictly-harmful agent to a conditional resource, and makes that
 reframing quantitative through the RESOURCE/STRAINED/LETHAL arc. Second, it
 identifies the load-bearing biology: radical-neutralization capacity, with
@@ -271,7 +305,9 @@ radioprotection alone (e.g., a focus on Dsup) would suggest.
 
 The model's relationship to existing experimental data is consistent under the
 correct framing (Table 2). The ISS *Cladosporium* growth advantage (~21%; Shunk
-et al. 2022) is of the same order as the model's stress-condition benefit. The
+et al. 2022) is of the same order of magnitude as the model's stress-condition ATP
+benefit; we stress that growth rate and steady-state ATP are distinct quantities
+and this comparison is only qualitative, not a like-for-like validation. The
 ATP decline reported in melanized cells at high dose (Bryan et al. 2011)
 corresponds to the model's STRAINED-to-LETHAL transition rather than contradicting
 it. The Dsup 40% protection (Hashimoto et al. 2016) is imposed directly. Crucially,
@@ -296,7 +332,7 @@ ceiling, which superoxide does. The components that most extend survivable dose
 These results must be read with several hard limitations.
 
 1. **The radiation axis is not physically dimensioned.** Model fluxes are
-   relative; the first-principles calibration fails by ~10⁶. Absolute Gy values
+   relative; the first-principles calibration fails by ~10⁶-fold. Absolute Gy values
    are illustrative anchors, not measurements, and no quantitative dose claim
    should be drawn from them.
 2. **No experimental validation.** Every result is in silico. Comparisons are to
@@ -318,12 +354,16 @@ These results must be read with several hard limitations.
 
 ## 6. Conclusion and future work
 
-We have shown, in a constraint-based model, that melanin-based radiotrophy
-combined with engineered antioxidant defenses *could* allow a human cell to treat
-ionizing radiation as a usable, survivable energy input up to a defense-limited
-dose, beyond which superoxide overwhelms its dismutase capacity and sets a hard
-survival ceiling. The result is internally consistent, robust to the most
-uncertain parameter, and yields a specific engineering priority (SOD/MnSOD2 first).
+Under the assumptions of a constraint-based model, and conditional on a melanin
+radiotrophic transduction step that is itself hypothetical, melanin-based
+radiotrophy combined with engineered antioxidant defenses *could* allow a human
+cell to treat ionizing radiation as a usable, survivable energy input up to a
+defense-limited dose, beyond which superoxide overwhelms its dismutase capacity
+and sets a hard survival ceiling. The result is internally consistent, robust to
+the most uncertain parameter, and yields a specific engineering priority
+(SOD/MnSOD2 first). It does not establish that biological radiotrophy is achievable
+in human cells; it establishes that the hypothesis is self-consistent and
+identifies what would have to be true, and experimentally tested, for it to hold.
 
 The decisive next step is experimental. We outline a proof-of-concept design
 (Supplementary: Wet-Lab Validation) built around isolating energy *capture* — the
@@ -364,20 +404,24 @@ quantitative ones.
 ## Data and code availability
 
 All model code, experiment scripts, generated data, figures, the dose-calibration
-module, the test suite, and the wet-lab validation proposal are available in the
-project repository.
+module, the test suite, and the wet-lab validation proposal are maintained in a
+version-controlled project repository and will be made publicly available upon
+publication.
 
 ## References
 
-Bryan R. et al. (2011) *Fungal Biology* 115:945. — Buxton G.V. et al. (1988)
-*J. Phys. Chem. Ref. Data* 17:513. — Chavez C. et al. (2019) *eLife* 8:e47682. —
-Dadachova E. et al. (2007) *PLoS ONE* 2:e457. — Daly M.J. et al. (2004) *Science*
-306:1025. — Hashimoto T. et al. (2016) *Nature Communications* 7:12808. — Lewis
-K.N. et al. (2015) *PNAS* 112:3722. — Lindahl T. & Barnes D.E. (2000) *Cold Spring
-Harb. Symp. Quant. Biol.* 65:127. — Schweitzer A.D. et al. (2009) *Int. J. Radiat.
-Oncol. Biol. Phys.* 73:1494. — Shunk G.K. et al. (2022) *Frontiers in
-Microbiology* (ISS *Cladosporium*). — Turick C.E. et al. (2011) *Bioelectro-
-chemistry*. — Kolesnikova et al. (2023) PMC10744337. — Engineered melanin
-nanoparticle radioprotection (2025) *Nature Communications*.
+1. Bryan R. et al. (2011) *Fungal Biology* 115:945.
+2. Buxton G.V. et al. (1988) *J. Phys. Chem. Ref. Data* 17:513.
+3. Chavez C. et al. (2019) *eLife* 8:e47682.
+4. Dadachova E. et al. (2007) *PLoS ONE* 2:e457.
+5. Daly M.J. et al. (2004) *Science* 306:1025.
+6. Hashimoto T. et al. (2016) *Nature Communications* 7:12808.
+7. Lewis K.N. et al. (2015) *PNAS* 112:3722.
+8. Lindahl T. & Barnes D.E. (2000) *Cold Spring Harb. Symp. Quant. Biol.* 65:127.
+9. Schweitzer A.D. et al. (2009) *Int. J. Radiat. Oncol. Biol. Phys.* 73:1494.
+10. Shunk G.K. et al. (2022) *Frontiers in Microbiology* (ISS *Cladosporium*).
+11. Turick C.E. et al. (2011) *Bioelectrochemistry*.
+12. Kolesnikova et al. (2023) PMC10744337.
+13. Engineered melanin nanoparticle radioprotection (2025) *Nature Communications*.
 
 *(Reference list to be completed with full citation details at submission.)*
