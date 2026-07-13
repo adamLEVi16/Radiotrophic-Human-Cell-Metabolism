@@ -1,0 +1,11 @@
+regime,dose_Gy_s,efficiency,radio_flux_cap,radio_used,atp_normal,atp_radio,pct_boost
+natural_background,7.6e-11,1.0,0.0,0.0,111.394,111.394,0.0
+natural_background,7.6e-11,0.01,0.0,0.0,111.394,111.394,0.0
+iss_leo,4.6e-09,1.0,0.0,0.0,111.394,111.394,0.0
+iss_leo,4.6e-09,0.01,0.0,0.0,111.394,111.394,0.0
+chernobyl_hotspot,2.8e-07,1.0,0.0,0.0,111.394,111.394,0.0
+chernobyl_hotspot,2.8e-07,0.01,0.0,0.0,111.394,111.394,0.0
+lab_gamma_source,0.1,1.0,0.0054,0.0054,111.394,111.395,0.001032
+lab_gamma_source,0.1,0.01,5.4e-05,5.4e-05,111.394,111.394,1e-05
+acutely_lethal_1s,5.0,1.0,0.27,0.27,111.394,111.452,0.051582
+acutely_lethal_1s,5.0,0.01,0.0027,0.0027,111.394,111.395,0.000516

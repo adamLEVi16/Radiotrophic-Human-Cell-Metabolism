@@ -1,0 +1,2 @@
+n_samples,pct_boost_mean,pct_boost_median,pct_boost_p5,pct_boost_p95,pct_boost_min,pct_boost_max,note
+400,10.43,10.66,-0.0,25.76,-0.0,32.39,Unconstrained RADIO; energy_constrained_dose shows real-dose boost ~0

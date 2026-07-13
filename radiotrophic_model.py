@@ -26,8 +26,15 @@ Requirements:
 
 import cobra
 import pandas as pd
+import numpy as np
 import json
 import os
+
+import radiotrophic_common as rc
+
+# Fraction of generated hydroxyl radicals that Dsup can intercept
+# (Hashimoto et al. 2016 measured ~40% DNA-damage reduction).
+DSUP_MAX_FRACTION = 0.40
 
 # ============================================================
 # MODEL CONSTRUCTION
@@ -291,8 +298,19 @@ def build_model():
     }, (0, 1000))
     
     model.add_reactions(rxns)
+
+    # Dsup can intercept at most ~40% of the hydroxyl radicals generated
+    # (Hashimoto et al. 2016). Without this ratio constraint FBA routes 100%
+    # of *OH through Dsup, overstating its protective role. *OH generation is
+    # 0.24 per unit RADIO flux, so the Dsup flux is capped at 0.40 * 0.24 * RADIO.
+    dsup_cap = model.problem.Constraint(
+        model.reactions.get_by_id('DSUP').flux_expression
+        - DSUP_MAX_FRACTION * 0.24 * model.reactions.get_by_id('RADIO').flux_expression,
+        ub=0, name='dsup_40pct_cap')
+    model.add_cons_vars(dsup_cap)
+
     model.objective = 'ATPM'
-    
+
     return model
 
 
@@ -582,9 +600,9 @@ def run_all_experiments():
             'observation': 'Dsup reduces DNA damage by ~40% in HEK293',
             'source': 'Hashimoto et al. 2016 Nature Comms',
             'experimental_value': '~40% X-ray damage reduction',
-            'model_prediction': 'Dsup handles 100% of OH radicals (FBA optimizes)',
-            'agreement': 'YES - Dsup protective, FBA overestimates (no 40% cap)',
-            'note': 'Kinetic model K3 confirms Dsup effect is marginal at low flux'
+            'model_prediction': 'Dsup flux capped at 40% of *OH via ratio constraint',
+            'agreement': 'YES - 40% cap now enforced in both FBA and kinetic model',
+            'note': 'Kinetic K3: removing Dsup raises DNA damage by exactly 1/0.6 = 67%'
         },
         {
             'observation': 'C. sphaerospermum 21% growth advantage on ISS',
@@ -610,8 +628,114 @@ def run_all_experiments():
             'agreement': 'YES - SOD augmentation improves radiation tolerance',
             'note': 'SOD2+catalase co-expression most effective'
         },
+        {
+            'observation': 'Energy available from radiation vs cellular ATP demand',
+            'source': 'This work (energy_budget.py); Buxton 1988 G-values',
+            'experimental_value': 'ISS ~144 mSv/yr; break-even needs ~0.3-28 Gy/s',
+            'model_prediction': 'Radiation supplies 1e-6 to 1e-10 % of ATP demand',
+            'agreement': 'DECISIVE - radiotrophy energetically negligible when survivable',
+            'note': 'Unconstrained RADIO flux 28.6 implies ~529 Gy/s (100x lethal)'
+        },
     ])
     results['experimental_validation'] = validation
+
+    # ----------------------------------------------------------
+    # EXPERIMENT 9: Energy-constrained radiation dose-response
+    # The RADIO upper bound is set by conservation of energy at each dose rate
+    # (radiotrophic_common.max_radio_flux) instead of an arbitrary cap. This is
+    # the physically correct version of Experiment 3 and shows whether any real
+    # dose regime yields a meaningful ATP boost.
+    # ----------------------------------------------------------
+    rows = []
+    for regime, dose in rc.DOSE_REGIMES.items():
+        for eff in (1.0, 0.01):
+            with model:
+                model.reactions.get_by_id('EX_glc').lower_bound = -5
+                cap = rc.max_radio_flux(dose, eff)
+                model.reactions.get_by_id('RADIO').upper_bound = cap
+                s_radio = model.optimize()
+                atp_radio = s_radio.objective_value if s_radio.status == 'optimal' else 0
+                radio_used = s_radio.fluxes.get('RADIO', 0) if s_radio.status == 'optimal' else 0
+            with model:
+                model.reactions.get_by_id('EX_glc').lower_bound = -5
+                disable_engineered(model)
+                s_norm = model.optimize()
+                atp_norm = s_norm.objective_value if s_norm.status == 'optimal' else 0
+            pct = ((atp_radio - atp_norm) / atp_norm * 100) if atp_norm > 0 else 0
+            rows.append({
+                'regime': regime,
+                'dose_Gy_s': dose,
+                'efficiency': eff,
+                'radio_flux_cap': round(cap, 6),
+                'radio_used': round(radio_used, 6),
+                'atp_normal': round(atp_norm, 3),
+                'atp_radio': round(atp_radio, 3),
+                'pct_boost': round(pct, 6),
+            })
+    results['energy_constrained_dose'] = pd.DataFrame(rows)
+
+    # ----------------------------------------------------------
+    # EXPERIMENT 10: Flux variability analysis at the baseline optimum
+    # Reports min/max flux ranges for key reactions at 95% of optimal ATP,
+    # so results are ranges rather than one arbitrary optimum.
+    # ----------------------------------------------------------
+    from cobra.flux_analysis import flux_variability_analysis
+    fva_model = build_model()
+    fva_model.reactions.get_by_id('EX_glc').lower_bound = -5
+    key_rxns = ['ATPM', 'RADIO', 'DSUP', 'SODc', 'CATc', 'GPX', 'GR',
+                'OH_SCAV', 'BER', 'MNAOX', 'NRF2', 'LDH', 'ETC_N']
+    fva = flux_variability_analysis(
+        fva_model, reaction_list=key_rxns, fraction_of_optimum=0.95)
+    fva = fva.reset_index().rename(columns={'index': 'reaction'})
+    fva['minimum'] = fva['minimum'].round(3)
+    fva['maximum'] = fva['maximum'].round(3)
+    fva['range'] = (fva['maximum'] - fva['minimum']).round(3)
+    results['fva'] = fva
+
+    # ----------------------------------------------------------
+    # EXPERIMENT 11: Monte Carlo uncertainty on the ATP boost
+    # Samples the most uncertain parameters over literature-justified ranges
+    # and reports the distribution of the ATP boost (unconstrained RADIO, to
+    # characterize the original claim's sensitivity, not to endorse it).
+    # ----------------------------------------------------------
+    rng = np.random.default_rng(42)
+    boosts = []
+    for _ in range(400):
+        ros_coeff = rng.uniform(0.1, 1.0)       # superoxide per NADH
+        atp_overhead = rng.uniform(0.2, 1.0)    # ATP per NADH transduction cost
+        sod_cap = rng.uniform(2.0, 6.0)         # SOD Vmax
+        mel_turnover = rng.uniform(0.01, 0.05)  # melanin consumed per NADH
+        m = build_model()
+        radio = m.reactions.get_by_id('RADIO')
+        mets = {mt.id: mt for mt in radio.metabolites}
+        # Set absolute coefficients (combine=False). ATP hydrolysis must stay
+        # balanced: consuming `atp_overhead` ATP releases equal ADP and Pi,
+        # otherwise adenylate/phosphate are created from nothing.
+        radio.add_metabolites({
+            mets['o2s_c']: ros_coeff,
+            mets['atp_c']: -atp_overhead,
+            mets['adp_c']: atp_overhead,
+            mets['pi_c']: atp_overhead,
+            mets['melanin_c']: -mel_turnover,
+        }, combine=False)
+        m.reactions.get_by_id('SODc').upper_bound = sod_cap
+        m.reactions.get_by_id('EX_glc').lower_bound = -5
+        a_radio = m.slim_optimize()
+        disable_engineered(m)
+        a_norm = m.slim_optimize()
+        if a_norm and a_norm > 0 and a_radio is not None:
+            boosts.append((a_radio - a_norm) / a_norm * 100)
+    boosts = np.array(boosts)
+    results['monte_carlo'] = pd.DataFrame([{
+        'n_samples': len(boosts),
+        'pct_boost_mean': round(float(boosts.mean()), 2),
+        'pct_boost_median': round(float(np.median(boosts)), 2),
+        'pct_boost_p5': round(float(np.percentile(boosts, 5)), 2),
+        'pct_boost_p95': round(float(np.percentile(boosts, 95)), 2),
+        'pct_boost_min': round(float(boosts.min()), 2),
+        'pct_boost_max': round(float(boosts.max()), 2),
+        'note': 'Unconstrained RADIO; energy_constrained_dose shows real-dose boost ~0',
+    }])
 
     return results
 
