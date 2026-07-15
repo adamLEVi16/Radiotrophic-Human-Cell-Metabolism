@@ -1,0 +1,4 @@
+output,p5,median,p95
+steady_h2o2_uM,0.1087,0.1743,0.4927
+dna_damage_120s,4.462e-06,1.484e-05,2.929e-05
+gsh_depletion_pct,0.1314,0.169,0.2591
