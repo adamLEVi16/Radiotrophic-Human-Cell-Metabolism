@@ -90,6 +90,15 @@ def test_kinetic_not_degenerate():
     assert hi > 5 * lo
 
 
+def test_kinetic_pulse_oh_recovers_after_beam_off():
+    # Reported hydroxyl radical must drop after the beam turns off (pulse
+    # recovery), not keep reporting an on-beam radiolytic source.
+    df = K.run_simulation(K.STRESS_DOSE, duration=300, pulse_off_time=60)
+    during = df[df.time_s < 60].oh_radical_M.max()
+    after = df[df.time_s > 120].oh_radical_M.max()
+    assert after < 0.01 * during
+
+
 def test_kinetic_sensitivity_ranks_phi_dna_top():
     # DNA damage should correlate most strongly (and positively) with the
     # fraction of hydroxyl radicals that reach DNA.

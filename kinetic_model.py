@@ -166,11 +166,16 @@ def run_simulation(dose_rate, duration=300, pulse_off_time=None, **defenses):
     if not sol.success:
         print(f"  warning: ODE solver reported: {sol.message}")
 
-    # Reconstruct quasi-steady OH concentration for reporting
+    # Reconstruct quasi-steady OH concentration for reporting. Mirror the ODE's
+    # radiation-on logic: after pulse_off_time the beam is off, so the radiolytic
+    # OH source is zero and only the Fenton contribution remains. (Without this,
+    # a pulsed run would report an on-beam OH source forever and mask recovery.)
+    radiolytic_oh = rc.ros_production_rates(dose_rate)["oh"]
     oh_series = []
     for i in range(len(sol.t)):
-        O2S, H2O2 = max(sol.y[0][i], 0), max(sol.y[1][i], 0)
-        oh_flux = rc.ros_production_rates(dose_rate)["oh"] + FENTON_K * FE2_CONC * H2O2
+        rad_on = not (pulse_off_time is not None and sol.t[i] > pulse_off_time)
+        H2O2 = max(sol.y[1][i], 0)
+        oh_flux = (radiolytic_oh if rad_on else 0.0) + FENTON_K * FE2_CONC * H2O2
         # nominal OH scavenging capacity (GSH-dominated) for a steady-state estimate
         k_oh_total = 1e10 * max(sol.y[2][i], 1e-6) + 1e9
         oh_series.append(oh_flux / k_oh_total)
