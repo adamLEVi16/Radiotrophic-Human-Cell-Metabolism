@@ -156,10 +156,27 @@ def fig_monte_carlo():
     plt.close(fig)
 
 
+def fig_kinetic_sensitivity():
+    df = pd.read_csv("k5_sensitivity_ranking.csv")
+    df = df.reindex(df.corr_with_dna_damage.abs().sort_values().index)
+    fig, ax = plt.subplots(figsize=(8, 4.2))
+    colors = [COL["radio"] if v >= 0 else COL["normal"]
+              for v in df.corr_with_dna_damage]
+    ax.barh(df.parameter, df.corr_with_dna_damage, color=colors)
+    ax.axvline(0, color="#555", linewidth=0.8)
+    ax.set_xlabel("Correlation with accumulated DNA damage")
+    ax.set_title("Kinetic sensitivity: DNA damage is driven by ·OH-to-DNA fraction and repair")
+    _style(ax)
+    fig.tight_layout()
+    fig.savefig(f"{FIGDIR}/fig7_kinetic_sensitivity.png", dpi=140)
+    plt.close(fig)
+
+
 def main():
     os.makedirs(FIGDIR, exist_ok=True)
     for fn in (fig_energy_budget, fig_kinetic_dose_response, fig_kinetic_ablation,
-               fig_kinetic_timecourse, fig_energy_constrained, fig_monte_carlo):
+               fig_kinetic_timecourse, fig_energy_constrained, fig_monte_carlo,
+               fig_kinetic_sensitivity):
         print(f"  {fn.__name__} ...")
         fn()
     print(f"Figures written to {FIGDIR}/")

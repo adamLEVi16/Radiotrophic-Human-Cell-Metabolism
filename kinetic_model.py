@@ -185,6 +185,77 @@ def run_simulation(dose_rate, duration=300, pulse_off_time=None, **defenses):
     })
 
 
+def _run_with_overrides(dose_rate, duration, overrides, **defenses):
+    """Run a simulation with selected module-level parameters temporarily
+    overridden. The ODE reads these constants from the module namespace at
+    call time, so setting them here changes the run and restoring afterward
+    keeps the defaults intact for other experiments."""
+    import sys
+    mod = sys.modules[__name__]
+    saved = {k: getattr(mod, k) for k in overrides}
+    try:
+        for k, v in overrides.items():
+            setattr(mod, k, v)
+        return run_simulation(dose_rate, duration=duration, **defenses)
+    finally:
+        for k, v in saved.items():
+            setattr(mod, k, v)
+
+
+def run_sensitivity_analysis(n=150, seed=7):
+    """Monte Carlo uncertainty propagation for the kinetic model — the ODE
+    analogue of the FBA Monte Carlo, so both arms carry formal uncertainty.
+
+    The most uncertain kinetic parameters are sampled over literature-plausible
+    ranges at the stress dose, and the resulting distributions of the harm
+    readouts are reported, together with a sensitivity ranking (correlation of
+    each parameter with accumulated DNA damage).
+
+    Returns (distributions_df, ranking_df).
+    """
+    rng = np.random.default_rng(seed)
+    sampled = {"K_SOD": [], "K_CAT": [], "VMAX_GPX": [],
+               "FE2_CONC": [], "PHI_DNA": [], "K_REPAIR": []}
+    out = {"steady_h2o2_uM": [], "dna_damage_120s": [], "gsh_depletion_pct": []}
+
+    for _ in range(n):
+        ov = {
+            "K_SOD": K_SOD * rng.uniform(0.5, 2.0),      # SOD abundance +/- 2x
+            "K_CAT": K_CAT * rng.uniform(0.3, 3.0),      # catalase (cytosolic, uncertain)
+            "VMAX_GPX": VMAX_GPX * rng.uniform(0.4, 2.0),
+            "FE2_CONC": rng.uniform(2e-7, 5e-6),         # labile iron pool varies widely
+            "PHI_DNA": rng.uniform(0.005, 0.05),         # fraction of *OH reaching DNA
+            "K_REPAIR": rng.uniform(0.005, 0.02),        # BER rate
+        }
+        df = _run_with_overrides(STRESS_DOSE, 120, ov)
+        for k in sampled:
+            sampled[k].append(ov[k])
+        out["steady_h2o2_uM"].append(df["h2o2_M"].iloc[-1] * 1e6)
+        out["dna_damage_120s"].append(df["dna_damage"].iloc[-1])
+        out["gsh_depletion_pct"].append((1 - df["gsh_M"].iloc[-1] / GSH_TOTAL) * 100)
+
+    dist_rows = []
+    for name, vals in out.items():
+        v = np.array(vals)
+        dist_rows.append({
+            "output": name,
+            "p5": float(np.percentile(v, 5)),
+            "median": float(np.median(v)),
+            "p95": float(np.percentile(v, 95)),
+        })
+    dist = pd.DataFrame(dist_rows)
+    for c in ("p5", "median", "p95"):
+        dist[c] = dist[c].map(lambda x: float(f"{x:.4g}"))
+
+    dna = np.array(out["dna_damage_120s"])
+    rank_rows = []
+    for k, vals in sampled.items():
+        r = np.corrcoef(np.array(vals), dna)[0, 1]
+        rank_rows.append({"parameter": k, "corr_with_dna_damage": round(float(r), 3)})
+    rank_rows.sort(key=lambda r: -abs(r["corr_with_dna_damage"]))
+    return dist, pd.DataFrame(rank_rows)
+
+
 def run_all_kinetic_experiments():
     """Run all Phase 3 kinetic experiments."""
     results = {}
@@ -243,6 +314,13 @@ def run_all_kinetic_experiments():
     print("  K4: Radiation pulse recovery...")
     results["k4_pulse_recovery"] = run_simulation(STRESS_DOSE, duration=300,
                                                   pulse_off_time=60)
+
+    # K5: parameter sensitivity / uncertainty (Monte Carlo) --------------
+    print("  K5: Parameter sensitivity (Monte Carlo)...")
+    dist, ranking = run_sensitivity_analysis()
+    results["k5_sensitivity"] = dist
+    results["k5_sensitivity_ranking"] = ranking
+
     return results
 
 

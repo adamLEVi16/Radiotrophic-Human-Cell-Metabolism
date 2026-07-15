@@ -1,0 +1,7 @@
+parameter,corr_with_dna_damage
+PHI_DNA,0.904
+K_REPAIR,-0.438
+K_SOD,0.188
+VMAX_GPX,0.043
+FE2_CONC,0.024
+K_CAT,-0.02

@@ -31,7 +31,9 @@ metabolism. The two ideas should not be conflated.
 > an artifact of a radiotrophic reaction that generated reducing equivalents
 > without any link to the energy actually deposited by radiation. Once energy
 > conservation is enforced (`energy_constrained_dose`), the boost at every
-> survivable dose rate is ~0 (`fig5_energy_constrained.png`).
+> survivable dose rate is ~0 (`fig5_energy_constrained.png`). The original
+> proposal (`plan.pdf`) reflects the earlier framing; `REVISION_NOTES.md`
+> records what changed and why.
 
 ## Repository layout
 
@@ -94,6 +96,13 @@ each system's role):
 - Remove **catalase** → H₂O₂ rises ~6×
 - Remove **Dsup** → DNA damage rises exactly 1/0.6 = 67 % (the 40 % cap)
 - Remove **Nrf2** → glutathione depletes ~2× faster
+
+It also carries **formal uncertainty propagation** (experiment K5,
+`run_sensitivity_analysis`): a Monte Carlo over the uncertain kinetic
+parameters that reports output distributions and a sensitivity ranking. DNA
+damage is governed almost entirely by the ·OH-to-DNA fraction and the repair
+rate, not the peroxide enzymes (`fig7_kinetic_sensitivity.png`) — so both the
+FBA and kinetic arms now quantify their own uncertainty.
 
 ## What is trustworthy vs. what is illustrative
 

@@ -90,6 +90,15 @@ def test_kinetic_not_degenerate():
     assert hi > 5 * lo
 
 
+def test_kinetic_sensitivity_ranks_phi_dna_top():
+    # DNA damage should correlate most strongly (and positively) with the
+    # fraction of hydroxyl radicals that reach DNA.
+    _, ranking = K.run_sensitivity_analysis(n=40, seed=1)
+    top = ranking.iloc[0]
+    assert top["parameter"] == "PHI_DNA"
+    assert top["corr_with_dna_damage"] > 0.5
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     passed = 0
